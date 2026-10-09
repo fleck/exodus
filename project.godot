@@ -1,5 +1,10 @@
-; Exodus: Wilderness — Godot 4.7+
-; Local split-screen and online sessions share one simulation.
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
 
 config_version=5
 
@@ -38,8 +43,5 @@ window/handheld/orientation="landscape"
 
 [rendering]
 
-renderer/rendering_method="forward_plus"
-renderer/rendering_method.mobile="mobile"
-renderer/rendering_method.web="gl_compatibility"
 anti_aliasing/quality/msaa_3d=2
 environment/defaults/default_clear_color=Color(0.55, 0.4, 0.24, 1)

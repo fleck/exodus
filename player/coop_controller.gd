@@ -213,8 +213,9 @@ func _regen_stamina(delta: float) -> void:
 func _process_human_movement(delta: float) -> void:
 	var input_dir := input_router.get_movement_vector()
 	var theta := CAMERA_YAW
-	var right := Vector3(cos(theta), 0.0, sin(theta))
-	var forward := Vector3(sin(theta), 0.0, -cos(theta))
+	# Node3D yaw: local +X is right, local -Z is where the camera looks.
+	var right := Vector3(cos(theta), 0.0, -sin(theta))
+	var forward := Vector3(-sin(theta), 0.0, -cos(theta))
 	var direction := right * input_dir.x + forward * (-input_dir.y)
 	direction.y = 0.0
 	var speed := move_speed * (1.45 if sprinting else 1.0)
@@ -317,7 +318,8 @@ func _on_safe_velocity_computed(safe_velocity: Vector3) -> void:
 
 
 func _face_direction(dir: Vector3, weight: float) -> void:
-	var yaw := atan2(dir.x, -dir.z)
+	# Local +Z is the front (breastplate and props).
+	var yaw := atan2(dir.x, dir.z)
 	rotation.y = lerp_angle(rotation.y, yaw, weight)
 
 

@@ -33,6 +33,24 @@ func get_movement_vector() -> Vector2:
 	return keys
 
 
+## Right stick, or the keyboard look keys. Y is positive when looking down.
+func get_look_vector() -> Vector2:
+	if not NetworkManager.has_authority(get_parent()):
+		return Vector2.ZERO
+	if device_id >= 0:
+		return _joy_look(device_id)
+	var keys := Input.get_vector(
+		_action(&"look_left"),
+		_action(&"look_right"),
+		_action(&"look_up"),
+		_action(&"look_down")
+	)
+	var pad := _spare_look_pad()
+	if pad >= 0:
+		keys += _joy_look(pad)
+	return keys.limit_length(1.0)
+
+
 func is_action_just_pressed(action_name: StringName) -> bool:
 	if not NetworkManager.has_authority(get_parent()):
 		return false
@@ -76,6 +94,32 @@ func _map_action_to_button(action_name: StringName) -> JoyButton:
 			return JOY_BUTTON_X
 		_:
 			return JOY_BUTTON_INVALID
+
+
+func _joy_look(pad: int) -> Vector2:
+	var axis := Vector2(
+		Input.get_joy_axis(pad, JOY_AXIS_RIGHT_X),
+		Input.get_joy_axis(pad, JOY_AXIS_RIGHT_Y)
+	)
+	if axis.length() <= 0.2:
+		return Vector2.ZERO
+	return axis.limit_length(1.0)
+
+
+## Keyboard player 1 can still orbit with a controller that no seat has claimed.
+func _spare_look_pad() -> int:
+	if device_id >= 0 or keyboard_scheme != 0:
+		return -1
+	var taken: Dictionary = {}
+	for leader in SessionManager.leaders():
+		var router := leader.get_node_or_null("InputRouter") as InputRouter
+		if router != null and router.device_id >= 0:
+			taken[router.device_id] = true
+	for pad in Input.get_connected_joypads():
+		var id := int(pad)
+		if not taken.has(id):
+			return id
+	return -1
 
 
 func _prefix() -> String:

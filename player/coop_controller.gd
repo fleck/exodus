@@ -7,6 +7,11 @@ extends CharacterBody3D
 
 const GRAVITY := 28.0
 const CAMERA_YAW := -0.84
+const CAMERA_PITCH := deg_to_rad(-18.0)
+const PITCH_MIN := deg_to_rad(-60.0)
+const PITCH_MAX := deg_to_rad(26.0)
+const LOOK_SPEED := 2.6
+const MOUSE_LOOK_SPEED := 0.003
 const WORLD_RADIUS := 175.0
 
 @export var character_name: StringName = &"Moses"
@@ -36,6 +41,8 @@ var hold_ability: bool = false
 
 var camera_pivot: Node3D
 var camera: Camera3D
+var camera_yaw: float = CAMERA_YAW
+var camera_pitch: float = CAMERA_PITCH
 var listener: AudioListener3D
 var nav_agent: NavigationAgent3D
 var input_router: InputRouter
@@ -44,6 +51,8 @@ var _ring: MeshInstance3D
 var _bt: AIBehaviorTree
 var _attack_cd: float = 0.0
 var _edge_note: bool = false
+var _mouse_look: Vector2 = Vector2.ZERO
+var _ignore_next_mouse: bool = false
 
 
 func _ready() -> void:
@@ -60,6 +69,8 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	SessionManager.unregister_leader(self)
+	if _wants_mouse_look() and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 
 func _physics_process(delta: float) -> void:
@@ -70,6 +81,7 @@ func _physics_process(delta: float) -> void:
 	sprinting = false
 	if is_possessed_by_local_human:
 		_read_inputs()
+		_apply_look(delta)
 	else:
 		_clear_inputs()
 	_regen_stamina(delta)
@@ -98,6 +110,7 @@ func assign_control(peer: int, device: int, scheme: int) -> void:
 	input_router.device_id = device if is_possessed_by_local_human else -1
 	input_router.keyboard_scheme = scheme if is_possessed_by_local_human else 0
 	input_router.network_peer_id = authority
+	_mouse_look = Vector2.ZERO
 	if _ring:
 		_ring.visible = is_possessed_by_local_human
 
@@ -115,13 +128,13 @@ func ability_hint() -> String:
 
 func control_hint() -> String:
 	if input_router.device_id >= 0:
-		return "Stick move · A interact · RB ability · X attack"
+		return "Left stick move · Right stick camera · A interact · RB ability · X attack"
 	if input_router.keyboard_scheme == 1:
-		return "IJKL move · U interact · O ability · P attack"
+		return "IJKL move · Numpad 8462 camera · U interact · O ability · P attack"
 	var swap := ""
 	if SessionManager.local_controlled_count() <= 1:
 		swap = " · 1-4 swap"
-	return "WASD move · E interact · R ability · F attack" + swap
+	return "WASD move · Mouse or right stick camera · E interact · R ability · F attack" + swap
 
 
 func status_line() -> String:
@@ -210,9 +223,20 @@ func _regen_stamina(delta: float) -> void:
 	stamina = minf(stamina_max, stamina + 14.0 * delta)
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if not _wants_mouse_look():
+		return
+	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		if _ignore_next_mouse:
+			_ignore_next_mouse = false
+			return
+		_mouse_look += (event as InputEventMouseMotion).relative
+		get_viewport().set_input_as_handled()
+
+
 func _process_human_movement(delta: float) -> void:
 	var input_dir := input_router.get_movement_vector()
-	var theta := CAMERA_YAW
+	var theta := camera_yaw
 	# Node3D yaw: local +X is right, local -Z is where the camera looks.
 	var right := Vector3(cos(theta), 0.0, -sin(theta))
 	var forward := Vector3(-sin(theta), 0.0, -cos(theta))
@@ -344,10 +368,45 @@ func _clamp_world() -> void:
 		EventBus.notification.emit("The way further into the desert is shut.")
 
 
-func _align_camera() -> void:
-	if camera_pivot == null:
+func _wants_mouse_look() -> bool:
+	return (
+		is_possessed_by_local_human
+		and input_router != null
+		and input_router.device_id < 0
+		and input_router.keyboard_scheme == 0
+		and not SessionManager.show_touch
+	)
+
+
+func _apply_look(delta: float) -> void:
+	_update_mouse_capture()
+	var look := input_router.get_look_vector()
+	var yaw_delta := -look.x * LOOK_SPEED * delta
+	var pitch_delta := -look.y * LOOK_SPEED * delta
+	yaw_delta -= _mouse_look.x * MOUSE_LOOK_SPEED
+	pitch_delta -= _mouse_look.y * MOUSE_LOOK_SPEED
+	_mouse_look = Vector2.ZERO
+	camera_yaw = wrapf(camera_yaw + yaw_delta, -PI, PI)
+	camera_pitch = clampf(camera_pitch + pitch_delta, PITCH_MIN, PITCH_MAX)
+
+
+func _update_mouse_capture() -> void:
+	if input_router == null or input_router.device_id >= 0 or input_router.keyboard_scheme != 0:
 		return
-	camera_pivot.rotation.y = CAMERA_YAW - rotation.y
+	var capture := _wants_mouse_look() and not get_tree().paused
+	var mode := Input.MOUSE_MODE_CAPTURED if capture else Input.MOUSE_MODE_VISIBLE
+	if Input.mouse_mode == mode:
+		return
+	Input.mouse_mode = mode
+	if capture:
+		_ignore_next_mouse = true
+
+
+func _align_camera() -> void:
+	if camera_pivot == null or camera == null:
+		return
+	camera_pivot.rotation.y = camera_yaw - rotation.y
+	camera.rotation.x = camera_pitch
 
 
 func _tick_visual() -> void:

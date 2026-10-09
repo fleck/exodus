@@ -215,6 +215,7 @@ func _on_game_over(reason: String) -> void:
 	_over_label.text = reason
 	_over_panel.visible = true
 	get_tree().paused = true
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 
 func _toggle_pause() -> void:
@@ -223,10 +224,13 @@ func _toggle_pause() -> void:
 	_paused = not _paused
 	_pause_panel.visible = _paused
 	get_tree().paused = _paused
+	if _paused:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 
 func _leave() -> void:
 	get_tree().paused = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	NetworkManager.close()
 	SessionManager.reset()
 	get_tree().change_scene_to_file("res://scenes/main.tscn")

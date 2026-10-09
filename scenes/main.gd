@@ -7,6 +7,7 @@ var _address: LineEdit
 
 
 func _ready() -> void:
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	SessionManager.reset()
 	NetworkManager.close()
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -79,7 +80,7 @@ func _paint() -> void:
 	column.add_child(touch)
 
 	var help := Label.new()
-	help.text = "Solo: WASD, E interact, R ability, F attack, 1–4 swap leaders.\nSecond leader: IJKL, U interact, O ability, P attack. Further leaders use gamepads.\nUnassigned leaders follow as companions."
+	help.text = "Solo: WASD, mouse or right stick to turn the camera, E interact, R ability, F attack, 1–4 swap leaders.\nSecond leader: IJKL, numpad 8/4/6/2 camera, U interact, O ability, P attack. Further leaders use gamepads.\nUnassigned leaders follow as companions."
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	help.add_theme_font_size_override("font_size", 14)
 	help.add_theme_color_override("font_color", Color(0.9, 0.84, 0.72))

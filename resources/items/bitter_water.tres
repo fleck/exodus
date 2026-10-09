@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ItemResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/item_resource.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+item_id = &"bitter_water"
+display_name = "Bitter Water"
+description = "The pools of Marah. Miriam can sweeten them. A length of wood will also do."
+spoil_hours = 0.0
+nourishment = 0

@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://player/joshua.gd" id="1_char"]
+
+[node name="Joshua" type="CharacterBody3D"]
+script = ExtResource("1_char")
+character_name = &"Joshua"
+move_speed = 6.4
+robe_color = Color(0.55, 0.22, 0.14, 1)
+trim_color = Color(0.35, 0.24, 0.14, 1)
+skin_color = Color(0.5, 0.34, 0.24, 1)
+prop_kind = "spear"
+body_scale = 1.02

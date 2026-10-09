@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://player/aaron.gd" id="1_char"]
+
+[node name="Aaron" type="CharacterBody3D"]
+script = ExtResource("1_char")
+character_name = &"Aaron"
+move_speed = 5.0
+robe_color = Color(0.16, 0.26, 0.52, 1)
+trim_color = Color(0.82, 0.66, 0.28, 1)
+skin_color = Color(0.55, 0.38, 0.26, 1)
+prop_kind = "breastplate"
+body_scale = 1.0

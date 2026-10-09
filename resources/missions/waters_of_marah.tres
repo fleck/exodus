@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="MissionResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/mission_resource.gd" id="1_mission"]
+
+[resource]
+script = ExtResource("1_mission")
+mission_id = &"waters_of_marah"
+title = "Waters of Marah"
+description = "The pool to the east is bitter. Miriam can purify it. Anyone carrying wood can sweeten it too."
+type = 0
+objective_coordinates = Vector3(46, 0, 8)
+murmuring_impact = -12.0
+required_characters = Array[StringName]([&"Miriam"])
+step_ids = PackedStringArray("reach_site", "purify")
+goal_amount = 1
+sort_order = 1
+synergy = false

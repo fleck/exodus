@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ItemResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/item_resource.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+item_id = &"manna"
+display_name = "Manna"
+description = "The morning portion. Anything kept past the next dawn rots, except on the day before the Sabbath."
+spoil_hours = 24.0
+nourishment = 1

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="MissionResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/mission_resource.gd" id="1_mission"]
+
+[resource]
+script = ExtResource("1_mission")
+mission_id = &"rephidim"
+title = "Battle of Rephidim"
+description = "Moses must keep the staff raised on the hill. Aaron braces him. Joshua holds the valley. Miriam sings over the wounded."
+type = 2
+objective_coordinates = Vector3(-2, 0, -58)
+murmuring_impact = -18.0
+required_characters = Array[StringName]([&"Moses", &"Aaron", &"Joshua", &"Miriam"])
+step_ids = PackedStringArray("hold_the_hill")
+goal_amount = 1
+sort_order = 2
+synergy = true

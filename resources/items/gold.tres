@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ItemResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/item_resource.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+item_id = &"gold"
+display_name = "Gold"
+description = "Earrings and rings in the camp. When murmuring breaks, they are melted for an idol."
+spoil_hours = 0.0
+nourishment = 0

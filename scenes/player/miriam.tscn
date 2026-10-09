@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://player/miriam.gd" id="1_char"]
+
+[node name="Miriam" type="CharacterBody3D"]
+script = ExtResource("1_char")
+character_name = &"Miriam"
+move_speed = 5.3
+robe_color = Color(0.32, 0.16, 0.4, 1)
+trim_color = Color(0.82, 0.5, 0.32, 1)
+skin_color = Color(0.6, 0.42, 0.3, 1)
+prop_kind = "timbrel"
+body_scale = 0.96

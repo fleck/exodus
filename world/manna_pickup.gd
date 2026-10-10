@@ -7,20 +7,22 @@ var _taken := false
 func _ready() -> void:
 	super._ready()
 	add_to_group("manna")
-	var mesh := MeshInstance3D.new()
-	var sphere := SphereMesh.new()
-	sphere.radius = 0.16
-	sphere.height = 0.28
-	mesh.mesh = sphere
-	mesh.position.y = 0.35
-	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.96, 0.94, 0.82)
-	material.emission_enabled = true
-	material.emission = Color(1.0, 0.95, 0.75)
-	material.emission_energy_multiplier = 0.7
-	material.roughness = 0.35
-	mesh.material_override = material
-	add_child(mesh)
+	var pile := Node3D.new()
+	pile.name = "Flakes"
+	add_child(pile)
+	var wafer := Figure.glow(Color(0.97, 0.94, 0.82), 0.4, 0.4)
+	var honey := Figure.glow(Color(0.9, 0.74, 0.38), 0.22, 0.32)
+	var spots: Array[Vector3] = [
+		Vector3(0, 0.03, 0),
+		Vector3(0.09, 0.045, 0.03),
+		Vector3(-0.07, 0.04, 0.05),
+		Vector3(0.02, 0.055, -0.08),
+		Vector3(-0.04, 0.065, -0.02),
+		Vector3(0.06, 0.03, -0.04),
+	]
+	for i in spots.size():
+		var radius := 0.085 if i == 0 else 0.045 + float(i) * 0.006
+		Figure.add_mesh(pile, Figure.cylinder(radius, radius * 0.92, 0.02, 10), spots[i], wafer if i % 2 == 0 else honey, Vector3(0, float(i) * 22.0, 0), false)
 	var light := OmniLight3D.new()
 	light.light_color = Color(1.0, 0.93, 0.7)
 	light.light_energy = 0.35

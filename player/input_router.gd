@@ -10,6 +10,8 @@ extends Node
 @export var network_peer_id: int = 1
 @export var keyboard_scheme: int = 0
 
+const TRIGGER_PRESS := 0.55
+
 var _joy_prev: Dictionary = {}
 
 
@@ -54,46 +56,69 @@ func get_look_vector() -> Vector2:
 func is_action_just_pressed(action_name: StringName) -> bool:
 	if not NetworkManager.has_authority(get_parent()):
 		return false
-	if device_id == -1:
-		var pressed := Input.is_action_just_pressed(_action(action_name))
-		if keyboard_scheme == 0 and SessionManager.consume_touch_just(action_name):
-			return true
-		if action_name == &"attack" and pressed and _pointer_over_ui():
-			return false
-		return pressed
-	var button := _map_action_to_button(action_name)
-	if button == JOY_BUTTON_INVALID:
-		return false
-	var down := Input.is_joy_button_pressed(device_id, button)
-	var was: bool = bool(_joy_prev.get(button, false))
-	_joy_prev[button] = down
-	return down and not was
+	if device_id >= 0:
+		return _joy_just(device_id, action_name)
+	var pressed := Input.is_action_just_pressed(_action(action_name))
+	if action_name == &"attack" and pressed and _pointer_over_ui():
+		pressed = false
+	if keyboard_scheme == 0 and SessionManager.consume_touch_just(action_name):
+		pressed = true
+	if keyboard_scheme == 0:
+		pressed = pressed or _joy_just(_spare_pad(), action_name)
+	return pressed
 
 
 func is_action_pressed(action_name: StringName) -> bool:
 	if not NetworkManager.has_authority(get_parent()):
 		return false
-	if device_id == -1:
-		var down := Input.is_action_pressed(_action(action_name))
-		if keyboard_scheme == 0 and bool(SessionManager.touch_held.get(action_name, false)):
-			return true
-		return down
-	var button := _map_action_to_button(action_name)
-	if button == JOY_BUTTON_INVALID:
+	if device_id >= 0:
+		return _joy_held(device_id, action_name)
+	var down := Input.is_action_pressed(_action(action_name))
+	if keyboard_scheme == 0 and bool(SessionManager.touch_held.get(action_name, false)):
+		down = true
+	if keyboard_scheme == 0:
+		down = down or _joy_held(_spare_pad(), action_name)
+	return down
+
+
+## Joypad this leader should read. Keyboard player 1 uses a pad no seat has claimed.
+func active_pad() -> int:
+	if device_id >= 0:
+		return device_id
+	return _spare_pad()
+
+
+func _joy_just(pad: int, action_name: StringName) -> bool:
+	if pad < 0:
+		_joy_prev[action_name] = false
 		return false
-	return Input.is_joy_button_pressed(device_id, button)
+	var down := _joy_down(pad, action_name)
+	var was: bool = bool(_joy_prev.get(action_name, false))
+	_joy_prev[action_name] = down
+	return down and not was
 
 
-func _map_action_to_button(action_name: StringName) -> JoyButton:
+func _joy_held(pad: int, action_name: StringName) -> bool:
+	if pad < 0:
+		return false
+	return _joy_down(pad, action_name)
+
+
+## South button interacts. Right bumper is the ability (tap or hold).
+## Right trigger attacks so the camera thumb can stay on the stick; west face does too.
+func _joy_down(pad: int, action_name: StringName) -> bool:
 	match action_name:
 		&"interact":
-			return JOY_BUTTON_A
+			return Input.is_joy_button_pressed(pad, JOY_BUTTON_A)
 		&"channel_miracle":
-			return JOY_BUTTON_RIGHT_SHOULDER
+			return Input.is_joy_button_pressed(pad, JOY_BUTTON_RIGHT_SHOULDER)
 		&"attack":
-			return JOY_BUTTON_X
+			return (
+				Input.get_joy_axis(pad, JOY_AXIS_TRIGGER_RIGHT) >= TRIGGER_PRESS
+				or Input.is_joy_button_pressed(pad, JOY_BUTTON_X)
+			)
 		_:
-			return JOY_BUTTON_INVALID
+			return false
 
 
 func _joy_move(pad: int) -> Vector2:

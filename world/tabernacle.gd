@@ -64,60 +64,39 @@ func interact(by: Node) -> bool:
 
 
 func _build() -> void:
-	var cloth := StandardMaterial3D.new()
-	cloth.albedo_color = Color(0.35, 0.18, 0.42)
-	cloth.roughness = 0.75
-	var gold := StandardMaterial3D.new()
-	gold.albedo_color = Color(0.78, 0.62, 0.28)
-	gold.metallic = 0.85
-	gold.roughness = 0.32
-	var linen := StandardMaterial3D.new()
-	linen.albedo_color = Color(0.9, 0.88, 0.8)
-	linen.roughness = 0.8
+	var linen := Figure.cloth(Color(0.9, 0.88, 0.8))
+	var linen_dim := Figure.cloth(Color(0.75, 0.7, 0.6))
+	var skins := Figure.leather(Color(0.5, 0.26, 0.16))
+	var skins_dark := Figure.leather(Color(0.32, 0.16, 0.1))
+	var gold := Figure.metal(Color(0.82, 0.66, 0.28), 0.3, 0.06)
+	var bronze := Figure.metal(Color(0.62, 0.4, 0.22), 0.42)
+	var grate := Figure.metal(Color(0.32, 0.24, 0.18), 0.5)
+	var acacia := Figure.wood(Color(0.42, 0.28, 0.16))
 
-	var tent := MeshInstance3D.new()
-	var box := BoxMesh.new()
-	box.size = Vector3(4.2, 2.4, 6.4)
-	tent.mesh = box
-	tent.position = Vector3(0, 1.3, 0)
-	tent.material_override = cloth
-	add_child(tent)
-
-	var roof := MeshInstance3D.new()
-	var roof_mesh := BoxMesh.new()
-	roof_mesh.size = Vector3(4.6, 0.18, 6.8)
-	roof.mesh = roof_mesh
-	roof.position = Vector3(0, 2.55, 0)
-	roof.material_override = gold
-	add_child(roof)
-
-	var altar := MeshInstance3D.new()
-	var altar_mesh := BoxMesh.new()
-	altar_mesh.size = Vector3(1.1, 0.8, 1.1)
-	altar.mesh = altar_mesh
-	altar.position = Vector3(0, 0.4, 1.6)
-	altar.material_override = gold
-	add_child(altar)
-
-	var curtain := MeshInstance3D.new()
-	var curtain_mesh := BoxMesh.new()
-	curtain_mesh.size = Vector3(1.4, 2.0, 0.08)
-	curtain.mesh = curtain_mesh
-	curtain.position = Vector3(0, 1.1, 3.15)
-	curtain.material_override = linen
-	add_child(curtain)
-
-	for x in [-2.4, 2.4]:
-		for z in [-3.4, 3.4]:
-			var post := MeshInstance3D.new()
-			var post_mesh := CylinderMesh.new()
-			post_mesh.top_radius = 0.08
-			post_mesh.bottom_radius = 0.08
-			post_mesh.height = 2.2
-			post.mesh = post_mesh
-			post.position = Vector3(x, 1.1, z)
-			post.material_override = gold
-			add_child(post)
+	for x in [-1.7, 1.7]:
+		for z in [-2.5, -1.25, 0.0, 1.25, 2.5]:
+			Figure.add_mesh(self, Figure.cylinder(0.055, 0.065, 2.45, 8), Vector3(x, 1.22, z), gold)
+			Figure.add_mesh(self, Figure.cylinder(0.04, 0.045, 2.2, 6), Vector3(x * 0.72, 1.1, z), acacia, Vector3.ZERO, false)
+	Figure.add_mesh(self, Figure.box(Vector3(3.15, 2.1, 0.05)), Vector3(0, 1.12, -2.55), linen)
+	Figure.add_mesh(self, Figure.box(Vector3(0.05, 2.1, 4.9)), Vector3(-1.7, 1.12, 0), linen)
+	Figure.add_mesh(self, Figure.box(Vector3(0.05, 2.1, 4.9)), Vector3(1.7, 1.12, 0), linen)
+	Figure.add_mesh(self, Figure.box(Vector3(3.05, 0.05, 4.85)), Vector3(0, 2.28, 0), linen_dim)
+	Figure.add_mesh(self, Figure.box(Vector3(3.55, 0.07, 5.45)), Vector3(0, 2.36, 0), skins)
+	Figure.add_mesh(self, Figure.box(Vector3(3.25, 0.05, 5.1)), Vector3(0, 2.42, 0), skins_dark)
+	Figure.add_mesh(self, Figure.box(Vector3(0.5, 1.95, 0.04)), Vector3(-0.75, 1.05, 2.58), Figure.cloth(Color(0.16, 0.26, 0.5)))
+	Figure.add_mesh(self, Figure.box(Vector3(0.22, 1.95, 0.04)), Vector3(-0.38, 1.05, 2.6), Figure.cloth(Color(0.4, 0.16, 0.38)))
+	Figure.add_mesh(self, Figure.box(Vector3(0.5, 1.95, 0.04)), Vector3(0.85, 1.05, 2.58), Figure.cloth(Color(0.58, 0.16, 0.14)))
+	Figure.add_mesh(self, Figure.box(Vector3(1.1, 0.72, 1.1)), Vector3(0.1, 0.36, 3.7), bronze)
+	Figure.add_mesh(self, Figure.box(Vector3(0.86, 0.05, 0.86)), Vector3(0.1, 0.74, 3.7), grate)
+	for sx in [-0.48, 0.48]:
+		for sz in [-0.48, 0.48]:
+			Figure.add_mesh(self, Figure.cylinder(0.0, 0.04, 0.2, 6), Vector3(0.1 + sx, 0.8, 3.7 + sz), bronze, Vector3.ZERO, false)
+	Figure.add_mesh(self, Figure.cylinder(0.08, 0.1, 0.42, 8), Vector3(-1.2, 0.26, 3.35), bronze)
+	Figure.add_mesh(self, Figure.cylinder(0.32, 0.26, 0.14, 12), Vector3(-1.2, 0.52, 3.35), bronze)
+	Figure.add_mesh(self, Figure.cylinder(0.028, 0.038, 0.85, 6), Vector3(0.4, 0.55, 0.2), gold, Vector3.ZERO, false)
+	for branch in [-0.32, 0.0, 0.32]:
+		Figure.span(self, Vector3(0.4, 0.85, 0.2), Vector3(0.4 + branch, 1.22, 0.2), 0.016, gold)
+		Figure.add_mesh(self, Figure.sphere(0.04, 0.06, 8), Vector3(0.4 + branch, 1.28, 0.2), Figure.glow(Color(1.0, 0.8, 0.42), 0.7), Vector3.ZERO, false)
 
 	var lamp := AreaLight3D.new()
 	lamp.name = "TabernacleLamp"

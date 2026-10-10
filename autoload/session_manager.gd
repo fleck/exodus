@@ -16,6 +16,7 @@ var touch_just: Dictionary = {}
 
 var _leaders: Dictionary = {}
 var _inputs_ready := false
+var _dpad_prev: Dictionary = {}
 
 
 func _enter_tree() -> void:
@@ -40,6 +41,28 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed(&"swap_3"):
 		focus_character(&"Joshua")
 	elif event.is_action_pressed(&"swap_4"):
+		focus_character(&"Miriam")
+
+
+func _process(_delta: float) -> void:
+	if local_controlled_count() != 1:
+		_dpad_prev.clear()
+		return
+	var pad := _solo_joypad()
+	if pad < 0:
+		_dpad_prev.clear()
+		return
+	var up := _dpad_edge(pad, JOY_BUTTON_DPAD_UP)
+	var right := _dpad_edge(pad, JOY_BUTTON_DPAD_RIGHT)
+	var down := _dpad_edge(pad, JOY_BUTTON_DPAD_DOWN)
+	var left := _dpad_edge(pad, JOY_BUTTON_DPAD_LEFT)
+	if up:
+		focus_character(&"Moses")
+	elif right:
+		focus_character(&"Aaron")
+	elif down:
+		focus_character(&"Joshua")
+	elif left:
 		focus_character(&"Miriam")
 
 
@@ -214,6 +237,27 @@ func _assign_online() -> void:
 			body.call("assign_control", 0, -1, 0)
 
 
+func _solo_joypad() -> int:
+	for character_name in ORDER:
+		if not _leaders.has(character_name):
+			continue
+		var body: Node = _leaders[character_name]
+		if not bool(body.get("is_possessed_by_local_human")):
+			continue
+		var router := body.get_node_or_null("InputRouter") as InputRouter
+		if router == null:
+			return -1
+		return router.active_pad()
+	return -1
+
+
+func _dpad_edge(pad: int, button: JoyButton) -> bool:
+	var down := Input.is_joy_button_pressed(pad, button)
+	var was: bool = bool(_dpad_prev.get(button, false))
+	_dpad_prev[button] = down
+	return down and not was
+
+
 func _local_devices() -> Array[Dictionary]:
 	var list: Array[Dictionary] = [
 		{"device": -1, "scheme": 0},
@@ -296,6 +340,7 @@ func _register_inputs() -> void:
 	_joy(&"swap_3", JOY_BUTTON_DPAD_DOWN)
 	_joy(&"swap_4", JOY_BUTTON_DPAD_LEFT)
 	_key(&"pause", KEY_ESCAPE)
+	_joy(&"pause", JOY_BUTTON_START)
 
 
 func _ensure_action(action: StringName) -> void:

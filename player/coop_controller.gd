@@ -47,6 +47,7 @@ var listener: AudioListener3D
 var nav_agent: NavigationAgent3D
 var input_router: InputRouter
 var _visual: Node3D
+var _rig: Dictionary = {}
 var _ring: MeshInstance3D
 var _bt: AIBehaviorTree
 var _attack_cd: float = 0.0
@@ -128,13 +129,16 @@ func ability_hint() -> String:
 
 func control_hint() -> String:
 	if input_router.device_id >= 0:
-		return "Left stick move · Right stick camera · A interact · RB ability · X attack"
+		var pad_swap := ""
+		if SessionManager.local_controlled_count() <= 1:
+			pad_swap = " · D-pad swap"
+		return "Left stick move · Right stick camera · A interact · RB ability · RT attack" + pad_swap
 	if input_router.keyboard_scheme == 1:
 		return "IJKL move · Numpad 8462 camera · U interact · O ability · P attack"
 	var swap := ""
 	if SessionManager.local_controlled_count() <= 1:
-		swap = " · 1-4 swap"
-	return "WASD move · Mouse or right stick camera · E interact · R ability · F attack" + swap
+		swap = " · 1-4 or D-pad swap"
+	return "WASD move · Mouse or right stick camera · E/A interact · R/RB ability · F/RT attack" + swap
 
 
 func status_line() -> String:
@@ -410,11 +414,23 @@ func _align_camera() -> void:
 
 
 func _tick_visual() -> void:
-	if _visual == null:
+	if _rig.is_empty():
 		return
-	var moving := Vector2(velocity.x, velocity.z).length() > 0.4
-	var bob := absf(sin(Time.get_ticks_msec() * 0.012)) * (0.05 if moving else 0.012)
-	_visual.position.y = bob
+	var speed := 0.0
+	if not _locks_feet():
+		speed = Vector2(velocity.x, velocity.z).length() / maxf(move_speed, 0.1)
+	var action := ""
+	if stagger_timer > 0.05:
+		action = "stagger"
+	elif is_channeling:
+		action = "channel"
+	elif is_performing_ritual or heal_pulse > 0.15:
+		action = "offer"
+	elif is_bracing:
+		action = "brace"
+	elif _attack_cd > attack_cooldown() - 0.28:
+		action = "strike"
+	Figure.pose(_rig, Time.get_ticks_msec() * 0.001, speed, action)
 
 
 func _try_interact() -> bool:
@@ -546,51 +562,13 @@ func _build_visual() -> void:
 		_visual.name = "Visual"
 		add_child(_visual)
 	_visual.scale = Vector3.ONE * body_scale
-
-	var robe := MeshInstance3D.new()
-	var robe_mesh := CapsuleMesh.new()
-	robe_mesh.radius = 0.38
-	robe_mesh.height = 1.15
-	robe.mesh = robe_mesh
-	robe.position = Vector3(0, 0.95, 0)
-	robe.material_override = _cloth(robe_color)
-	_visual.add_child(robe)
-
-	var hem := MeshInstance3D.new()
-	var hem_mesh := CylinderMesh.new()
-	hem_mesh.top_radius = 0.42
-	hem_mesh.bottom_radius = 0.62
-	hem_mesh.height = 0.55
-	hem.mesh = hem_mesh
-	hem.position = Vector3(0, 0.48, 0)
-	hem.material_override = _cloth(robe_color.darkened(0.08))
-	_visual.add_child(hem)
-
-	var trim := MeshInstance3D.new()
-	var trim_mesh := CylinderMesh.new()
-	trim_mesh.top_radius = 0.4
-	trim_mesh.bottom_radius = 0.4
-	trim_mesh.height = 0.08
-	trim.mesh = trim_mesh
-	trim.position = Vector3(0, 1.22, 0)
-	trim.material_override = _cloth(trim_color, 0.45, 0.35)
-	_visual.add_child(trim)
-
-	var head := MeshInstance3D.new()
-	var head_mesh := SphereMesh.new()
-	head_mesh.radius = 0.18
-	head_mesh.height = 0.36
-	head.mesh = head_mesh
-	head.position = Vector3(0, 1.68, 0)
-	head.material_override = _cloth(skin_color, 0.72, 0.0)
-	_visual.add_child(head)
-
+	_rig = Figure.build(_visual, character_name, robe_color, trim_color, skin_color)
 	_add_prop()
 
 	var label := Label3D.new()
 	label.text = String(character_name)
 	label.font_size = 42
-	label.position = Vector3(0, 2.15, 0)
+	label.position = Vector3(0, 2.05, 0)
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.modulate = Color(0.98, 0.94, 0.84)
 	label.outline_size = 8
@@ -616,63 +594,40 @@ func _build_visual() -> void:
 
 
 func _add_prop() -> void:
+	var hand_r: Node3D = _rig.get("hand_r")
+	var hand_l: Node3D = _rig.get("hand_l")
+	if hand_r == null:
+		return
 	match prop_kind:
 		"staff":
-			var staff := MeshInstance3D.new()
-			var stick := CylinderMesh.new()
-			stick.top_radius = 0.035
-			stick.bottom_radius = 0.045
-			stick.height = 2.15
-			staff.mesh = stick
-			staff.position = Vector3(0.42, 1.05, 0.05)
-			staff.rotation_degrees = Vector3(0, 0, -8)
-			staff.material_override = _cloth(Color(0.42, 0.28, 0.16), 0.8, 0.0)
-			_visual.add_child(staff)
-		"breastplate":
-			var plate := MeshInstance3D.new()
-			var box := BoxMesh.new()
-			box.size = Vector3(0.42, 0.38, 0.12)
-			plate.mesh = box
-			plate.position = Vector3(0, 1.15, 0.22)
-			plate.material_override = _cloth(trim_color, 0.28, 0.85)
-			_visual.add_child(plate)
+			var wood_mat := Figure.wood(Color(0.42, 0.27, 0.15))
+			var shaft := Figure.add_mesh(hand_r, Figure.cylinder(0.02, 0.028, 2.05, 8), Figure.held_offset(-1.0), wood_mat)
+			shaft.basis = Figure.held_up(-1.0)
+			Figure.add_mesh(shaft, Figure.cylinder(0.042, 0.042, 0.1, 8), Vector3(0, -0.12, 0), Figure.leather(Color(0.3, 0.18, 0.1)), Vector3.ZERO, false)
+			var crook_mesh := TorusMesh.new()
+			crook_mesh.inner_radius = 0.04
+			crook_mesh.outer_radius = 0.11
+			crook_mesh.rings = 8
+			crook_mesh.ring_segments = 12
+			Figure.add_mesh(shaft, crook_mesh, Vector3(0.06, 1.02, 0), wood_mat, Vector3(0, 90, 18), false)
 		"spear":
-			var shaft := MeshInstance3D.new()
-			var stick := CylinderMesh.new()
-			stick.top_radius = 0.03
-			stick.bottom_radius = 0.03
-			stick.height = 2.0
-			shaft.mesh = stick
-			shaft.position = Vector3(0.38, 1.1, 0)
-			shaft.material_override = _cloth(Color(0.36, 0.24, 0.14))
-			_visual.add_child(shaft)
-			var tip := MeshInstance3D.new()
-			var cone := CylinderMesh.new()
-			cone.top_radius = 0.0
-			cone.bottom_radius = 0.07
-			cone.height = 0.28
-			tip.mesh = cone
-			tip.position = Vector3(0.38, 2.15, 0)
-			tip.material_override = _cloth(Color(0.75, 0.72, 0.66), 0.25, 0.9)
-			_visual.add_child(tip)
+			var shaft := Figure.add_mesh(hand_r, Figure.cylinder(0.016, 0.022, 2.15, 8), Figure.held_offset(-1.0), Figure.wood(Color(0.36, 0.22, 0.12)))
+			shaft.basis = Figure.held_up(-1.0)
+			Figure.add_mesh(shaft, Figure.cylinder(0.0, 0.05, 0.3, 8), Vector3(0, 1.16, 0), Figure.metal(Color(0.74, 0.68, 0.56), 0.28), Vector3.ZERO, false)
 		"timbrel":
-			var drum := MeshInstance3D.new()
-			var torus := TorusMesh.new()
-			torus.inner_radius = 0.1
-			torus.outer_radius = 0.2
-			drum.mesh = torus
-			drum.position = Vector3(0.32, 1.15, 0.2)
-			drum.rotation_degrees = Vector3(70, 20, 0)
-			drum.material_override = _cloth(trim_color, 0.4, 0.2)
-			_visual.add_child(drum)
-
-
-func _cloth(color: Color, rough: float = 0.88, metal: float = 0.0) -> StandardMaterial3D:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = color
-	material.roughness = rough
-	material.metallic = metal
-	return material
+			if hand_l == null:
+				return
+			var hoop := TorusMesh.new()
+			hoop.inner_radius = 0.09
+			hoop.outer_radius = 0.15
+			hoop.rings = 10
+			hoop.ring_segments = 14
+			var drum := Figure.add_mesh(hand_l, hoop, Vector3(0.02, 0.02, 0.08), Figure.wood(trim_color.darkened(0.15)), Vector3(78, 16, 8), false)
+			Figure.add_mesh(drum, Figure.cylinder(0.088, 0.088, 0.012, 14), Vector3.ZERO, Figure.cloth(Color(0.84, 0.74, 0.52), 0.62), Vector3.ZERO, false)
+			var jingle := Figure.metal(trim_color, 0.3, 0.05)
+			for i in 5:
+				var angle := float(i) / 5.0 * TAU
+				Figure.add_mesh(drum, Figure.sphere(0.018, 0.03, 6), Vector3(cos(angle) * 0.12, 0.02, sin(angle) * 0.12), jingle, Vector3.ZERO, false)
 
 
 func _build_sync() -> void:

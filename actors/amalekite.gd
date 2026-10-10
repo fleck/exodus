@@ -6,6 +6,7 @@ var max_health: float = 150.0
 
 var _attack_wait: float = 0.6
 var _dead := false
+var _rig: Dictionary = {}
 
 
 func _ready() -> void:
@@ -19,31 +20,33 @@ func _ready() -> void:
 	shape_node.shape = capsule
 	shape_node.position.y = 0.85
 	add_child(shape_node)
-	var mesh := MeshInstance3D.new()
-	var body := CapsuleMesh.new()
-	body.radius = 0.38
-	body.height = 1.5
-	mesh.mesh = body
-	mesh.position.y = 0.95
-	var hide := StandardMaterial3D.new()
-	hide.albedo_color = Color(0.32, 0.14, 0.1)
-	hide.roughness = 0.8
-	mesh.material_override = hide
-	add_child(mesh)
-	var helm := MeshInstance3D.new()
-	var sphere := SphereMesh.new()
-	sphere.radius = 0.2
-	sphere.height = 0.28
-	helm.mesh = sphere
-	helm.position.y = 1.7
-	var metal := StandardMaterial3D.new()
-	metal.albedo_color = Color(0.55, 0.5, 0.42)
-	metal.metallic = 0.7
-	metal.roughness = 0.35
-	helm.material_override = metal
-	add_child(helm)
+	var visual := Node3D.new()
+	visual.name = "Visual"
+	add_child(visual)
+	var variety := int(absf(position.x * 8.0 + position.z * 3.0)) % 4
+	var hides: Array[Color] = [
+		Color(0.38, 0.16, 0.12),
+		Color(0.28, 0.18, 0.12),
+		Color(0.44, 0.22, 0.14),
+		Color(0.22, 0.13, 0.11),
+	]
+	var skins: Array[Color] = [
+		Color(0.46, 0.3, 0.2),
+		Color(0.38, 0.26, 0.18),
+		Color(0.52, 0.36, 0.24),
+		Color(0.34, 0.22, 0.16),
+	]
+	_rig = Figure.build(visual, &"amalekite", hides[variety], Color(0.5, 0.34, 0.18), skins[variety], variety)
 	if NetworkManager.online():
 		set_multiplayer_authority(1)
+
+
+func _process(_delta: float) -> void:
+	if _dead or _rig.is_empty():
+		return
+	var speed := Vector2(velocity.x, velocity.z).length() / 3.3
+	var action := "strike" if _attack_wait > 0.92 else ""
+	Figure.pose(_rig, Time.get_ticks_msec() * 0.001, speed, action)
 
 
 func _physics_process(delta: float) -> void:
@@ -69,7 +72,7 @@ func _physics_process(delta: float) -> void:
 		velocity.x = dir.x * 3.3
 		velocity.z = dir.z * 3.3
 		if dir.length_squared() > 0.01:
-			look_at(global_position + dir, Vector3.UP)
+			rotation.y = atan2(dir.x, dir.z)
 	if not is_on_floor():
 		velocity.y -= 28.0 * delta
 	else:

@@ -1,15 +1,20 @@
 shader_type spatial;
-render_mode diffuse_lambert;
+render_mode diffuse_burley, cull_back;
 
 uniform float riot : hint_range(0.0, 1.0) = 0.0;
 
+varying vec3 albedo_color;
+
 void vertex() {
-	float phase = VERTEX.x * 2.3 + VERTEX.z * 1.7;
-	VERTEX.y += abs(sin(TIME * 5.0 + phase)) * 0.07;
-	VERTEX.x += sin(TIME * 2.4 + phase) * 0.03;
+	float phase = float(INSTANCE_ID) * 0.37;
+	float walk = sin(TIME * 5.2 + phase);
+	float arm = smoothstep(0.95, 1.22, VERTEX.y) * smoothstep(0.14, 0.32, abs(VERTEX.x));
+	VERTEX.z += walk * sign(VERTEX.x) * arm * 0.18;
+	VERTEX.y += abs(walk) * 0.03;
+	albedo_color = mix(COLOR.rgb, vec3(0.55, 0.12, 0.08), riot);
 }
 
 void fragment() {
-	ALBEDO = mix(vec3(0.45, 0.30, 0.20), vec3(0.58, 0.14, 0.09), riot);
-	ROUGHNESS = 0.9;
+	ALBEDO = albedo_color;
+	ROUGHNESS = 0.86;
 }

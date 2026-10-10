@@ -94,7 +94,7 @@ func _paint() -> void:
 	_wire_menu([one, two, three, four], [host, _address, join], [touch])
 
 	var help := Label.new()
-	help.text = "Menu: left stick or D-pad, south button to confirm. Mouse still works.\nSolo: WASD, mouse or right stick to turn the camera, E interact, R ability, F attack, 1–4 swap leaders.\nSecond leader: IJKL, numpad 8/4/6/2 camera, U interact, O ability, P attack. Further leaders use gamepads.\nUnassigned leaders follow as companions."
+	help.text = "Menu: left stick or D-pad, south button to confirm. Mouse still works.\nSolo: WASD, mouse or right stick to turn the camera, E interact, R ability, F attack, 1–4 swap leaders.\nController: south button interact, right bumper ability, right trigger attack, D-pad swaps leaders (up Moses, right Aaron, down Joshua, left Miriam). Start pauses.\nSecond leader: IJKL, numpad 8/4/6/2 camera, U interact, O ability, P attack. Further leaders use gamepads.\nUnassigned leaders follow as companions."
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	help.add_theme_font_size_override("font_size", 14)
 	help.add_theme_color_override("font_color", Color(0.9, 0.84, 0.72))

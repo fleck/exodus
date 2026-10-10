@@ -4,6 +4,7 @@ extends Node
 ## Separates a local device from the network peer that owns the leader.
 ## device_id -1 reads the keyboard (and touch, for scheme 0).
 ## 0, 1, 2... read that joypad. Solo and split-screen call the same API.
+## Keyboard player 1 also reads a joypad that no seat has claimed.
 
 @export var device_id: int = -1
 @export var network_peer_id: int = 1
@@ -16,11 +17,7 @@ func get_movement_vector() -> Vector2:
 	if not NetworkManager.has_authority(get_parent()):
 		return Vector2.ZERO
 	if device_id >= 0:
-		var axis := Vector2(
-			Input.get_joy_axis(device_id, JOY_AXIS_LEFT_X),
-			Input.get_joy_axis(device_id, JOY_AXIS_LEFT_Y)
-		)
-		return axis if axis.length() > 0.2 else Vector2.ZERO
+		return _joy_move(device_id)
 	var prefix := _prefix()
 	var keys := Input.get_vector(
 		prefix + "move_left",
@@ -29,8 +26,11 @@ func get_movement_vector() -> Vector2:
 		prefix + "move_down"
 	)
 	if keys == Vector2.ZERO and keyboard_scheme == 0:
-		return SessionManager.touch_move
-	return keys
+		keys = SessionManager.touch_move
+	var pad := _spare_pad()
+	if pad >= 0:
+		keys += _joy_move(pad)
+	return keys.limit_length(1.0)
 
 
 ## Right stick, or the keyboard look keys. Y is positive when looking down.
@@ -45,7 +45,7 @@ func get_look_vector() -> Vector2:
 		_action(&"look_up"),
 		_action(&"look_down")
 	)
-	var pad := _spare_look_pad()
+	var pad := _spare_pad()
 	if pad >= 0:
 		keys += _joy_look(pad)
 	return keys.limit_length(1.0)
@@ -96,6 +96,16 @@ func _map_action_to_button(action_name: StringName) -> JoyButton:
 			return JOY_BUTTON_INVALID
 
 
+func _joy_move(pad: int) -> Vector2:
+	var axis := Vector2(
+		Input.get_joy_axis(pad, JOY_AXIS_LEFT_X),
+		Input.get_joy_axis(pad, JOY_AXIS_LEFT_Y)
+	)
+	if axis.length() <= 0.2:
+		return Vector2.ZERO
+	return axis.limit_length(1.0)
+
+
 func _joy_look(pad: int) -> Vector2:
 	var axis := Vector2(
 		Input.get_joy_axis(pad, JOY_AXIS_RIGHT_X),
@@ -106,8 +116,8 @@ func _joy_look(pad: int) -> Vector2:
 	return axis.limit_length(1.0)
 
 
-## Keyboard player 1 can still orbit with a controller that no seat has claimed.
-func _spare_look_pad() -> int:
+## Keyboard player 1 can move and orbit with a controller that no seat has claimed.
+func _spare_pad() -> int:
 	if device_id >= 0 or keyboard_scheme != 0:
 		return -1
 	var taken: Dictionary = {}
